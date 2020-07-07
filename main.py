@@ -16,8 +16,8 @@ class Tabs(QWidget):
 		self.tabs = QTabWidget()
 		self.tab1 = Contests(self)
 		self.tab2 = Search(self)
-		self.tab3 = Notifier(self)
-		self.tab4 = Settings(self)
+		self.tab3 = Notifier(self,parent)
+		self.tab4 = Settings(self,parent)
 		self.tabs.resize(1000,700)
 		#Adding tabs
 		self.tabs.addTab(self.tab1,"Contests")
@@ -26,7 +26,6 @@ class Tabs(QWidget):
 		self.tabs.addTab(self.tab4,"Settings")
 		self.layout.addWidget(self.tabs)
 		self.setLayout(self.layout)
-
 class App(QMainWindow):
 	def setDarkMode(self):
 		palette = QtGui.QPalette()
@@ -53,13 +52,14 @@ class App(QMainWindow):
 			palette.setColor(QtGui.QPalette.BrightText, QtCore.Qt.red)
 			palette.setColor(QtGui.QPalette.Highlight, QtGui.QColor(120,120,120).lighter())
 			palette.setColor(QtGui.QPalette.HighlightedText, QtCore.Qt.black)
-		self.setPalette(palette)
 		print("[OK]Dark mode setting was set to",enabled)
+		self.setPalette(palette)
 	def __init__(self):
 		super().__init__()
 		#Initializing window
 		#self.closeEvent=self.dontExit
 		self.setDarkMode()
+		#self.setPalette(palette)
 		self.left = 0
 		self.top = 0
 		self.title = 'Bajton helper'
@@ -74,18 +74,19 @@ class App(QMainWindow):
 			print("[OK]Last known login is valid")
 		self.tabs_widget = Tabs(self)
 		self.setCentralWidget(self.tabs_widget)
+		#check if configured to be headless
 		parser = ConfigParser()
 		parser.read('props.ini')
-		if(parser["GUI"]["headless"]=="True"):
-			self.setWindowState(Qt.WindowMinimized)
-		self.show()
+		if(parser["GUI"]["headless"]!="True"):
+			self.show()
 	def closeEvent(self,event):
 		event.ignore()
-		self.setWindowState(Qt.WindowMinimized)
-if __name__ == '__main__':
+		self.hide()
+
+if __name__ == "__main__":
 	#Starting app, setting icon and style
 	app = QApplication(sys.argv)
 	app.setWindowIcon(QtGui.QIcon('icon.ico'))
 	app.setStyle("Fusion")
-	ex=App()
+	App()
 	sys.exit(app.exec_())

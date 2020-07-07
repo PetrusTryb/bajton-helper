@@ -1,4 +1,5 @@
 *.ini
 *.txt
+!requirements.txt
 .vscode
 __pycache__/*

@@ -1,19 +1,19 @@
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5 import *
-from configparser import SafeConfigParser
+from configparser import ConfigParser
 import requests
 import sys
 import time
 import os
 def getSession():
-	parser = SafeConfigParser()
+	parser = ConfigParser()
 	parser.read('props.ini')
 	#Getting session id from config
 	return parser["ACCOUNT"]["session"]
 def isLoggedIn():
 	print("[...]Checking session")
-	parser = SafeConfigParser()
+	parser = ConfigParser()
 	parser.read('props.ini')
 	c=dict()
 	#Getting session id from config and checking it
@@ -56,7 +56,7 @@ def logOut(forced=False,clear=False):
 		r = s.get(url = "http://bajton.vlo.gda.pl/api/logout")
 		data = r.text
 		print(data)
-		parser = SafeConfigParser()
+		parser = ConfigParser()
 		parser.read('props.ini')
 		parser["ACCOUNT"]={"session":""}
 		with open('props.ini', 'w') as configfile:
@@ -120,7 +120,7 @@ class loginForm():
 			sessid=s.cookies.get_dict()
 			print("[OK]You are in! Session id: ",sessid["sessionid"])
 			#Writing session id to config file
-			parser = SafeConfigParser()
+			parser = ConfigParser()
 			parser.read('props.ini')
 			parser["ACCOUNT"]={"session":sessid["sessionid"]}
 			with open('props.ini', 'w') as configfile:

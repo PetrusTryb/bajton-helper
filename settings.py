@@ -7,8 +7,9 @@ from login import logOut
 import requests
 import sys
 class Settings(QWidget):
-	def __init__(self, parent):
+	def __init__(self, parent, wnd):
 		super(QWidget, self).__init__(parent)
+		self.wnd=wnd
 		layout = QVBoxLayout()
 		account=QGroupBox("My data")
 		accountLayout=QVBoxLayout()
@@ -40,7 +41,7 @@ class Settings(QWidget):
 		runLayout=QVBoxLayout()
 		systemRun=QCheckBox("Run at system startup")
 		runLayout.addWidget(systemRun)
-		headless=QCheckBox("Start minimized")
+		headless=QCheckBox("Start minimized to tray")
 		headless.setChecked(parser["GUI"]["headless"]=="True")
 		headless.clicked.connect(lambda x:self.changeDisplay(headless.isChecked()))
 		runLayout.addWidget(headless)
@@ -60,11 +61,7 @@ class Settings(QWidget):
 		parser["GUI"]["theme"]=what
 		with open('props.ini', 'w') as configfile:
 			parser.write(configfile)
-		box = QMessageBox()
-		box.setIcon(QMessageBox.Information)
-		box.setWindowTitle("Theme changed")
-		box.setText("Please restart the app to apply changes.")
-		box.exec_()
+		self.wnd.setDarkMode()
 	def changeDisplay(self,what):
 		parser = ConfigParser()
 		parser.read('props.ini')

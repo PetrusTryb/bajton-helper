@@ -1,4 +1,4 @@
-from configparser import SafeConfigParser
+from configparser import ConfigParser
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5 import *
@@ -16,7 +16,7 @@ class SearchThread(QThread):
 		self.row=0
 		self.cNames=dict()
 		self.results=list()
-		self.states={"None":"Unsolved","8":"Wrong","0":"Correct"}
+		self.states={"None":"Unsolved","8":"Partial","0":"Correct","-1":"Wrong"}
 		self.exclude=exclude
 		self.pid=pid
 		print("[...]Starting thread")
@@ -43,7 +43,7 @@ class SearchThread(QThread):
 		self.results_ready.emit(self.results)
 	def checkContestAccess(self,cid):
 		print("[...]Checking contest type: "+cid)
-		parser = SafeConfigParser()
+		parser = ConfigParser()
 		parser.read('props.ini')
 		c=dict()
 		#getting session id
@@ -56,12 +56,6 @@ class SearchThread(QThread):
 		if(x["contest_type"]!="Password Protected"):
 				return True
 		else:
-			csrfget=requests.get("http://bajton.vlo.gda.pl/api/profile")
-			h=dict()
-			#obtain CSRF token
-			h["X-CSRFToken"]=csrfget.cookies.get_dict()["csrftoken"]
-			h["Content-Type"]="application/json;charset=UTF-8"
-			c["csrftoken"]=csrfget.cookies.get_dict()["csrftoken"]
 			#check contest access
 			check=requests.get("http://bajton.vlo.gda.pl/api/contest/access?contest_id="+str(x["id"]),cookies=c)
 			if("true" in check.text):
@@ -70,15 +64,17 @@ class SearchThread(QThread):
 				try:
 					#try to authenticate to the contest
 					parser["PASSWORDS"][str(x["id"])]
+					csrfget=requests.get("http://bajton.vlo.gda.pl/api/profile")
+					h=dict()
+					#obtain CSRF token
+					h["X-CSRFToken"]=csrfget.cookies.get_dict()["csrftoken"]
+					h["Content-Type"]="application/json;charset=UTF-8"
+					c["csrftoken"]=csrfget.cookies.get_dict()["csrftoken"]
 					test=requests.post("http://bajton.vlo.gda.pl/api/contest/password",headers=h,cookies=c,data='{"contest_id":"'+str(x["id"])+'","password":"'+parser["PASSWORDS"][str(x["id"])]+'"}')
 					if('true' in test.text):
 						return True
 					else:
 						print("[WARN]Authentication failed for "+str(x["title"])+":"+test.text)
-						if("Please login first" in test.text):
-							############ SOL
-							logOut(True)
-							return False
 				except:
 					print("[WARN]No password found for "+str(x["title"]))
 		return False
@@ -204,6 +200,10 @@ class Search(QWidget):
 		cid=(self.tableWidget.item(index.row(),0).text()).split("/")[0]
 		pn=(self.tableWidget.item(index.row(),0).text()).split("/")[1]
 		id=(self.tableWidget.item(index.row(),0).text()).split("/")[2]
+		lst=requests.get("http://bajton.vlo.gda.pl/api/contest?id="+cid)
+		if(lst.json()["data"]["status"]!="0"):
+			self.error("Sorry, this contest has ended or not yet started.")
+			return
 		print("[...]Looking up for Your submissions: "+id)
 		self.threads=[]
 		#start search thread

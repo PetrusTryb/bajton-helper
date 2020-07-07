@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5 import *
-from configparser import SafeConfigParser
+from configparser import ConfigParser
 from login import getSession
 from search import SearchThread
 import datetime
@@ -14,15 +14,23 @@ class SystemTrayIcon(QSystemTrayIcon):
 	def __init__(self, icon, parent=None):
 		#init tray icon
 		QSystemTrayIcon.__init__(self, icon, parent)
+		self.parent=parent
 		#init context menu
 		menu = QMenu(parent)
+		showAction = menu.addAction("Show window")
+		showAction.triggered.connect(self.showUI)
 		exitAction = menu.addAction("Exit")
 		exitAction.triggered.connect(sys.exit)
 		self.setContextMenu(menu)
+		self.activated.connect(self.showUI)
+	def showUI(self,event):
+		#check if the icon or menu item was left-clicked
+		if(event==3 or event==False):
+			self.parent.show()
 class BackgroundService(threading.Thread):
-	def __init__(self):
+	def __init__(self,wnd):
 		threading.Thread.__init__(self)
-		self.trayIcon = SystemTrayIcon(QtGui.QIcon("icon.ico"))
+		self.trayIcon = SystemTrayIcon(QtGui.QIcon("icon.ico"),wnd)
 		self.trayIcon.setToolTip("Bajton helper")
 		self.trayIcon.show()
 		self.threads=[]
@@ -46,7 +54,10 @@ class BackgroundService(threading.Thread):
 		schedule.every(int(self.config["interval"])*mult[self.config["intervalType"]]).seconds.do(self.tick)
 	def checkPublic(self):
 		try:
-			last=int(self.parser["CACHE"]["publicCount"])
+			if("publicCount" in self.parser["CACHE"]):
+				last=int(self.parser["CACHE"]["publicCount"])
+			else:
+				last=-1
 		except KeyError:
 			self.parser["CACHE"]=dict()
 			last=-1
@@ -59,13 +70,15 @@ class BackgroundService(threading.Thread):
 		data=check.json()["data"]["results"]
 		print(len(data))
 		autoFilled=0
-		for i in range(last,len(data)):
-			#notify only when problem is not already solved
-			if(data[i]["my_status"]!=0):
-				self.trayIcon.showMessage("New public problem",data[i]["title"])
-				if(self.config["publicMode"]=="Auto"):
-					if(self.trySolve("-1",data[i]["_id"],str(data[i]["id"]))):
-						autoFilled+=1
+		#don't spam on first launch
+		if(last>-1):
+			for i in range(last,len(data)):
+				#notify only when problem is not already solved
+				if(data[i]["my_status"]!=0):
+					self.trayIcon.showMessage("New public problem",data[i]["title"])
+					if(self.config["publicMode"]=="Auto"):
+						if(self.trySolve("-1",data[i]["_id"],str(data[i]["id"]))):
+							autoFilled+=1
 		if(autoFilled>0):
 			self.trayIcon.showMessage(str(autoFilled)+" problems auto-filled!","We have copied Your previous answers so You don't have to solve these problems again.")
 		self.parser["CACHE"]["publicCount"]=str(len(data))
@@ -100,19 +113,23 @@ class BackgroundService(threading.Thread):
 			c["sessionid"]=sessionId
 			check=requests.get("http://bajton.vlo.gda.pl/api/contest/problem?contest_id="+cid,cookies=c)
 			data=check.json()["data"]
+			silent=False
 			try:
 				if(str(cid) not in self.parser["CACHE"]):
 					self.parser["CACHE"][str(cid)]=""
+					#don't spam on first launch
+					silent=True
 			except KeyError:
 				self.parser["CACHE"]=dict()
 				self.parser["CACHE"][str(cid)]=""
 			autoFilled=0
 			for p in data:
 				if(str(p["id"]) not in self.parser["CACHE"][str(cid)].split(";") and p["my_status"]!=0):
-					self.trayIcon.showMessage(self.cNames[cid],"New problem: "+p["title"])
-					if(self.config["contestMode"]=="Auto"):
-						if(self.trySolve(cid,p["_id"],str(p["id"]))):
-							autoFilled+=1
+					if(not silent):
+						self.trayIcon.showMessage(self.cNames[cid],"New problem: "+p["title"])
+						if(self.config["contestMode"]=="Auto"):
+							if(self.trySolve(cid,p["_id"],str(p["id"]))):
+								autoFilled+=1
 					self.parser["CACHE"][str(cid)]+=str(p["id"])+";"
 			if(autoFilled>0):
 				self.trayIcon.showMessage(str(autoFilled)+" problems auto-filled!","We have copied Your previous answers so You don't have to solve these problems again.")
@@ -120,7 +137,7 @@ class BackgroundService(threading.Thread):
 				self.parser.write(configfile)
 	def checkContestAccess(self,cid):
 		print("[...]Checking contest type: "+cid)
-		parser = SafeConfigParser()
+		parser = ConfigParser()
 		parser.read('props.ini')
 		c=dict()
 		#getting session id
@@ -133,12 +150,6 @@ class BackgroundService(threading.Thread):
 		if(x["contest_type"]!="Password Protected"):
 				return True
 		else:
-			csrfget=requests.get("http://bajton.vlo.gda.pl/api/profile")
-			h=dict()
-			#obtain CSRF token
-			h["X-CSRFToken"]=csrfget.cookies.get_dict()["csrftoken"]
-			h["Content-Type"]="application/json;charset=UTF-8"
-			c["csrftoken"]=csrfget.cookies.get_dict()["csrftoken"]
 			#check contest access
 			check=requests.get("http://bajton.vlo.gda.pl/api/contest/access?contest_id="+str(x["id"]),cookies=c)
 			if("true" in check.text):
@@ -147,6 +158,12 @@ class BackgroundService(threading.Thread):
 				try:
 					#try to authenticate to the contest
 					parser["PASSWORDS"][str(x["id"])]
+					csrfget=requests.get("http://bajton.vlo.gda.pl/api/profile")
+					h=dict()
+					#obtain CSRF token
+					h["X-CSRFToken"]=csrfget.cookies.get_dict()["csrftoken"]
+					h["Content-Type"]="application/json;charset=UTF-8"
+					c["csrftoken"]=csrfget.cookies.get_dict()["csrftoken"]
 					test=requests.post("http://bajton.vlo.gda.pl/api/contest/password",headers=h,cookies=c,data='{"contest_id":"'+str(x["id"])+'","password":"'+parser["PASSWORDS"][str(x["id"])]+'"}')
 					if('true' in test.text):
 						return True
@@ -277,10 +294,10 @@ class Notifier(QWidget):
 		self.config["intervalType"]=self.checkTimeCombo.currentText()
 		#print("[...]Applying new fetch interval settings")
 		self.updateConfig()
-	def __init__(self, parent):
+	def __init__(self, parent, wnd):
 		super(QWidget, self).__init__(parent)
-		self.parser = SafeConfigParser()
-		self.svc=BackgroundService()
+		self.parser = ConfigParser()
+		self.svc=BackgroundService(wnd)
 		self.svc.daemon=True
 		self.svc.start()
 		self.layout = QVBoxLayout()
