@@ -112,6 +112,7 @@ class Contests(QWidget):
 			print(fileName)
 			with open(fileName,"r") as f:
 				for line in f.readlines():
+					print(line)
 					l=line.split("|")
 					if(len(l)==3 and l[0]!="ID "):
 						self.importPassword(l[0],l[2])

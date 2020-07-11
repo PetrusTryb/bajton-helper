@@ -5,7 +5,9 @@ from PyQt5.QtGui import *
 from PyQt5 import *
 from login import logOut
 import requests
+import os
 import sys
+import win32com.client
 class Settings(QWidget):
 	def __init__(self, parent, wnd):
 		super(QWidget, self).__init__(parent)
@@ -40,9 +42,17 @@ class Settings(QWidget):
 		runOpts=QGroupBox("Start options")
 		runLayout=QVBoxLayout()
 		systemRun=QCheckBox("Run at system startup")
+		autorunEnabled="bajton.lnk" in os.listdir(os.getenv("appdata")+"\\Microsoft\\Windows\\Start Menu\\Programs\\Startup")
+		systemRun.setChecked(autorunEnabled)
+		systemRun.clicked.connect(self.toggleAutostart)
 		runLayout.addWidget(systemRun)
 		headless=QCheckBox("Start minimized to tray")
-		headless.setChecked(parser["GUI"]["headless"]=="True")
+		try:
+			headless.setChecked(parser["GUI"]["headless"]=="True")
+		except KeyError:
+			parser["GUI"]["headless"]="False"
+			with open('props.ini', 'w') as configfile:
+				parser.write(configfile)
 		headless.clicked.connect(lambda x:self.changeDisplay(headless.isChecked()))
 		runLayout.addWidget(headless)
 		runOpts.setLayout(runLayout)
@@ -68,3 +78,16 @@ class Settings(QWidget):
 		parser["GUI"]["headless"]=str(what)
 		with open('props.ini', 'w') as configfile:
 			parser.write(configfile)
+	def toggleAutostart(self):
+		autorunEnabled="bajton.lnk" in os.listdir(os.getenv("appdata")+"\\Microsoft\\Windows\\Start Menu\\Programs\\Startup")
+		if(autorunEnabled):
+			os.remove(os.getenv("appdata")+"\\Microsoft\\Windows\\Start Menu\\Programs\\Startup\\bajton.lnk")
+		else:
+			shell = win32com.client.Dispatch("WScript.Shell")
+			shortcut = shell.CreateShortCut(os.getenv("appdata")+"\\Microsoft\\Windows\\Start Menu\\Programs\\Startup\\bajton.lnk")
+			shortcut.Targetpath = "pythonw3"
+			shortcut.Arguments = os.path.realpath("main.py")
+			shortcut.IconLocation = os.path.realpath("icon.ico")
+			shortcut.Description = "Bajton Helper by Piotr Trybisz"
+			shortcut.WorkingDirectory = os.path.realpath(".")
+			shortcut.save()

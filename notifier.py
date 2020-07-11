@@ -35,6 +35,8 @@ class BackgroundService(threading.Thread):
 		self.trayIcon.show()
 		self.threads=[]
 	def tick(self):
+		self.reloadConfig()
+		print("Ticking...")
 		if(self.config["publicMode"]!="None"):
 			self.checkPublic()
 		if(self.config["contestMode"]!="None"):
@@ -46,12 +48,16 @@ class BackgroundService(threading.Thread):
 		while(1):
 			schedule.run_pending()
 			time.sleep(1)
+	def reloadConfig(self):
+		parser=ConfigParser()
+		parser.read("props.ini")
+		self.pushConfig(parser)
 	def pushConfig(self,fullConfig):
 		self.config=fullConfig["NOTIFICATIONS"]
 		self.parser=fullConfig
-		schedule.clear()
+		schedule.clear("check")
 		mult={"minutes":60,"hours":60*60,"seconds":1}
-		schedule.every(int(self.config["interval"])*mult[self.config["intervalType"]]).seconds.do(self.tick)
+		schedule.every(int(self.config["interval"])*mult[self.config["intervalType"]]).seconds.do(self.tick).tag("check")
 	def checkPublic(self):
 		try:
 			if("publicCount" in self.parser["CACHE"]):

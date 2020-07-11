@@ -1,11 +1,11 @@
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5 import *
-from login import *
-from contest import *
-from search import *
-from notifier import *
-from settings import *
+import login
+import contest
+import search
+import notifier
+import settings
 from configparser import ConfigParser
 import sys
 class Tabs(QWidget):
@@ -14,10 +14,10 @@ class Tabs(QWidget):
 		self.layout = QVBoxLayout(self)
 		#Initializing tab screen
 		self.tabs = QTabWidget()
-		self.tab1 = Contests(self)
-		self.tab2 = Search(self)
-		self.tab3 = Notifier(self,parent)
-		self.tab4 = Settings(self,parent)
+		self.tab1 = contest.Contests(self)
+		self.tab2 = search.Search(self)
+		self.tab3 = notifier.Notifier(self,parent)
+		self.tab4 = settings.Settings(self,parent)
 		self.tabs.resize(1000,700)
 		#Adding tabs
 		self.tabs.addTab(self.tab1,"Contests")
@@ -29,11 +29,13 @@ class Tabs(QWidget):
 class App(QMainWindow):
 	def setDarkMode(self):
 		palette = QtGui.QPalette()
+		#read from config
 		parser = ConfigParser()
 		parser.read('props.ini')
 		try:
 			enabled = (parser["GUI"]["theme"]=="dark")
 		except:
+			#if not set, set to dark
 			enabled=True
 			parser["GUI"]=dict()
 			parser["GUI"]["theme"]="dark"
@@ -57,9 +59,7 @@ class App(QMainWindow):
 	def __init__(self):
 		super().__init__()
 		#Initializing window
-		#self.closeEvent=self.dontExit
 		self.setDarkMode()
-		#self.setPalette(palette)
 		self.left = 0
 		self.top = 0
 		self.title = 'Bajton helper'
@@ -68,10 +68,11 @@ class App(QMainWindow):
 		self.setWindowTitle(self.title)
 		self.setGeometry(self.left, self.top, self.width, self.height)
 		#Checking user login
-		if(isLoggedIn()==" "):
-			loginForm(app)
+		if(login.isLoggedIn()==" "):
+			login.loginForm(app)
 		else:
 			print("[OK]Last known login is valid")
+		#display tabs
 		self.tabs_widget = Tabs(self)
 		self.setCentralWidget(self.tabs_widget)
 		#check if configured to be headless
@@ -80,6 +81,7 @@ class App(QMainWindow):
 		if(parser["GUI"]["headless"]!="True"):
 			self.show()
 	def closeEvent(self,event):
+		#do not close, but hide to tray
 		event.ignore()
 		self.hide()
 

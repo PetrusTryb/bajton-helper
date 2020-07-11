@@ -17,7 +17,11 @@ def isLoggedIn():
 	parser.read('props.ini')
 	c=dict()
 	#Getting session id from config and checking it
-	c["sessionid"]=parser["ACCOUNT"]["session"]
+	try:
+		c["sessionid"]=parser["ACCOUNT"]["session"]
+	except KeyError:
+		parser["ACCOUNT"]=dict()
+		return ' '
 	try:
 		r=requests.get("http://bajton.vlo.gda.pl/api/profile",cookies=c)
 		if "id" in r.text:
