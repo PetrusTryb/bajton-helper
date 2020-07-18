@@ -6,10 +6,12 @@ from login import getSession
 from search import SearchThread
 import datetime
 import requests
+import webbrowser
 import threading
 import schedule
 import time
 import sys
+from strings import *
 class SystemTrayIcon(QSystemTrayIcon):
 	def __init__(self, icon, parent=None):
 		#init tray icon
@@ -17,21 +19,26 @@ class SystemTrayIcon(QSystemTrayIcon):
 		self.parent=parent
 		#init context menu
 		menu = QMenu(parent)
-		showAction = menu.addAction("Show window")
+		showAction = menu.addAction(string_show_window)
 		showAction.triggered.connect(self.showUI)
-		exitAction = menu.addAction("Exit")
+		exitAction = menu.addAction(string_exit)
 		exitAction.triggered.connect(sys.exit)
+		menu.addSeparator()
+		githubAction=menu.addAction(string_source)
+		githubAction.triggered.connect(self.github)
 		self.setContextMenu(menu)
 		self.activated.connect(self.showUI)
 	def showUI(self,event):
 		#check if the icon or menu item was left-clicked
 		if(event==3 or event==False):
 			self.parent.show()
+	def github(self,event):
+		webbrowser.open("https://github.com/PetrusTryb/bajton-helper")
 class BackgroundService(threading.Thread):
 	def __init__(self,wnd):
 		threading.Thread.__init__(self)
 		self.trayIcon = SystemTrayIcon(QtGui.QIcon("icon.ico"),wnd)
-		self.trayIcon.setToolTip("Bajton helper")
+		self.trayIcon.setToolTip(string_running)
 		self.trayIcon.show()
 		self.threads=[]
 	def tick(self):
@@ -81,12 +88,12 @@ class BackgroundService(threading.Thread):
 			for i in range(last,len(data)):
 				#notify only when problem is not already solved
 				if(data[i]["my_status"]!=0):
-					self.trayIcon.showMessage("New public problem",data[i]["title"])
+					self.trayIcon.showMessage(string_new_problem,data[i]["title"])
 					if(self.config["publicMode"]=="Auto"):
 						if(self.trySolve("-1",data[i]["_id"],str(data[i]["id"]))):
 							autoFilled+=1
 		if(autoFilled>0):
-			self.trayIcon.showMessage(str(autoFilled)+" problems auto-filled!","We have copied Your previous answers so You don't have to solve these problems again.")
+			self.trayIcon.showMessage(str(autoFilled)+string_autofill_success,string_autofill_desc)
 		self.parser["CACHE"]["publicCount"]=str(len(data))
 		with open('props.ini', 'w') as configfile:
 			self.parser.write(configfile)
@@ -102,7 +109,7 @@ class BackgroundService(threading.Thread):
 			currency=self.config["contestAlert"].split()[1]
 			offset=int(self.config["contestAlert"].split()[0])
 			if((currency=="days" and delta.days<offset) or (currency=="hours" and delta.days==0 and delta.seconds//60//60<offset) or (currency=="minutes" and delta.days==0 and delta.seconds//60<offset)):
-				self.trayIcon.showMessage("Contest alert",i["title"]+" is ending in less than "+self.config["contestAlert"])
+				self.trayIcon.showMessage(string_contest_alert,i["title"]+string_contest_deadline+self.config["contestAlert"])
 	def checkContests(self):
 		print("[...]Checking contests updates")
 		#list all contests
@@ -132,13 +139,13 @@ class BackgroundService(threading.Thread):
 			for p in data:
 				if(str(p["id"]) not in self.parser["CACHE"][str(cid)].split(";") and p["my_status"]!=0):
 					if(not silent):
-						self.trayIcon.showMessage(self.cNames[cid],"New problem: "+p["title"])
+						self.trayIcon.showMessage(self.cNames[cid],string_new_problem+": "+p["title"])
 						if(self.config["contestMode"]=="Auto"):
 							if(self.trySolve(cid,p["_id"],str(p["id"]))):
 								autoFilled+=1
 					self.parser["CACHE"][str(cid)]+=str(p["id"])+";"
 			if(autoFilled>0):
-				self.trayIcon.showMessage(str(autoFilled)+" problems auto-filled!","We have copied Your previous answers so You don't have to solve these problems again.")
+				self.trayIcon.showMessage(str(autoFilled)+string_autofill_success,string_autofill_desc)
 			with open('props.ini', 'w') as configfile:
 				self.parser.write(configfile)
 	def checkContestAccess(self,cid):
@@ -259,7 +266,6 @@ class Notifier(QWidget):
 		opts=["hours","minutes","seconds"]
 		self.checkTime.setValue(int(self.config["interval"]))
 		self.checkTimeCombo.setCurrentIndex(opts.index(self.config["intervalType"]))
-
 		self.svc.pushConfig(self.parser)
 	def calcSleepTime(self):
 		sTime=int(self.config["interval"])
@@ -307,23 +313,23 @@ class Notifier(QWidget):
 		self.svc.daemon=True
 		self.svc.start()
 		self.layout = QVBoxLayout()
-		self.layout.addWidget(QLabel("Here You can manage notifications service.\nPlease note that this function is experimental.\nIt will work only when the app is running - please check autostart options in Settings."))
-		groupBox1 = QGroupBox("Public problems")
-		self.publicNotify = QCheckBox("Notify about new problems")
+		self.layout.addWidget(QLabel(string_notifications_desc))
+		groupBox1 = QGroupBox(string_public_problems)
+		self.publicNotify = QCheckBox(string_new_problems_notify)
 		self.publicNotify.clicked.connect(self.publicToggle)
-		self.publicAuto = QCheckBox("Fill automatically if previously solved")
+		self.publicAuto = QCheckBox(string_new_problems_autofill)
 		self.publicAuto.clicked.connect(self.publicToggle)
 		vbox = QVBoxLayout()
 		vbox.addWidget(self.publicNotify)
 		vbox.addWidget(self.publicAuto)
 		groupBox1.setLayout(vbox)
 		self.layout.addWidget(groupBox1)
-		groupBox2 = QGroupBox("Contests")
-		self.contestNotify = QCheckBox("Notify about new problems")
+		groupBox2 = QGroupBox(string_contests_problems)
+		self.contestNotify = QCheckBox(string_new_problems_notify)
 		self.contestNotify.clicked.connect(self.contestToggle)
-		self.contestAuto = QCheckBox("Fill automatically if previously solved")
+		self.contestAuto = QCheckBox(string_new_problems_autofill)
 		self.contestAuto.clicked.connect(self.contestToggle)
-		self.lazyNotify = QCheckBox("Notify about ending contests when deadline is closer than:")
+		self.lazyNotify = QCheckBox(string_ending_contests_notify)
 		self.lazyNotify.clicked.connect(self.alertToggle)
 		self.lazyDays = QSpinBox()
 		self.lazyDays.setMinimum(1)
@@ -339,7 +345,7 @@ class Notifier(QWidget):
 		vbox2.addWidget(self.cb)
 		groupBox2.setLayout(vbox2)
 		self.layout.addWidget(groupBox2)
-		groupBox3=QGroupBox("Check interval")
+		groupBox3=QGroupBox(string_interval)
 		vbox3 = QVBoxLayout()
 		self.checkTime = QSpinBox()
 		self.checkTime.setMinimum(1)
@@ -349,7 +355,7 @@ class Notifier(QWidget):
 		self.checkTimeCombo.currentIndexChanged.connect(self.intervalChange)
 		vbox3.addWidget(self.checkTime)
 		vbox3.addWidget(self.checkTimeCombo)
-		forceCheckbtn=QPushButton("Check now")
+		forceCheckbtn=QPushButton(string_check_now)
 		forceCheckbtn.clicked.connect(self.svc.tick)
 		vbox3.addWidget(forceCheckbtn)
 		groupBox3.setLayout(vbox3)

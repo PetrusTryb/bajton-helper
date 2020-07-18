@@ -3,6 +3,7 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5 import *
 import requests
+from strings import *
 class Contests(QWidget):
 	tableData=list()
 	def initTable(self):
@@ -10,12 +11,12 @@ class Contests(QWidget):
 		for i in reversed(range(self.layout.count())):
 			self.layout.removeItem(self.layout.itemAt(i))
 		self.tableData.clear()
-		self.layout.addWidget(QLabel("If You want to use this app in password-protected contests, please enter passwords to this table.\nDouble-click on a password cell to edit."))
+		self.layout.addWidget(QLabel(string_contests_desc))
 		self.tableWidget = QTableWidget()
 		self.getList()
 		self.tableWidget.setRowCount(len(self.tableData))
 		self.tableWidget.setColumnCount(3)
-		self.tableWidget.setHorizontalHeaderLabels(["Id","Name","Password"])
+		self.tableWidget.setHorizontalHeaderLabels(["Id",string_name,string_password])
 		header = self.tableWidget.horizontalHeader()       
 		header.setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeToContents)
 		header.setSectionResizeMode(1, QtWidgets.QHeaderView.Stretch)
@@ -44,7 +45,7 @@ class Contests(QWidget):
 				except:
 					self.tableWidget.setItem(i,2, QTableWidgetItem(""))
 			else:
-				notRequired=QTableWidgetItem("Not required")
+				notRequired=QTableWidgetItem(string_not_required)
 				notRequired.setFlags(QtCore.Qt.ItemIsEnabled)
 				self.tableWidget.setItem(i,2, notRequired)
 			self.toExport.append(row)
@@ -52,10 +53,10 @@ class Contests(QWidget):
 		self.tableWidget.cellChanged.connect(self.setPassword)
 		#import and export buttons
 		options=QHBoxLayout()
-		importBtn=QPushButton("Import")
+		importBtn=QPushButton(string_import)
 		importBtn.clicked.connect(self.importPasswords)
 		options.addWidget(importBtn)
-		exportBtn=QPushButton("Export")
+		exportBtn=QPushButton(string_export)
 		exportBtn.clicked.connect(self.exportPasswords)
 		options.addWidget(exportBtn)
 		self.layout.addLayout(options)
@@ -97,17 +98,17 @@ class Contests(QWidget):
 		with open('props.ini', 'w') as configfile:
 			parser.write(configfile)
 	def exportPasswords(self):
-		fileName, _ = QFileDialog.getSaveFileName(self,"Export contests passwords","_judgeHelperExp","Plain text (*.txt)")
+		fileName, _ = QFileDialog.getSaveFileName(self,string_export+string_contests_passwords,"_judgeHelperExp","*.txt")
 		if(fileName):
 			print(fileName)
-			with open(fileName,"w") as f:
-				f.write('%-3s|%-50s|%-s\n' % ("ID", "Contest name", "Password"))
+			with open(fileName,"w",encoding="UTF-8") as f:
+				f.write('%-3s|%-50s|%-s\n' % ("ID", string_name, string_password))
 				for i in self.toExport:
 					if(i["pass"]!=""):
 						f.write('%-3s|%-50s|%-s\n' % (i["id"], i["title"], i["pass"]))
-				f.write("Exported from Online Judge/Bajton helper app.")
+				f.write(string_txt_ad)
 	def importPasswords(self):
-		fileName, _ = QFileDialog.getOpenFileName(self,"Import contests passwords","","Plain text (*.txt)")
+		fileName, _ = QFileDialog.getOpenFileName(self,string_import+string_contests_passwords,"_judgeHelperExp","*.txt")
 		if(fileName):
 			print(fileName)
 			with open(fileName,"r") as f:

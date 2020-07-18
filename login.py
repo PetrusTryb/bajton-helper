@@ -6,6 +6,7 @@ import requests
 import sys
 import time
 import os
+from strings import *
 def getSession():
 	parser = ConfigParser()
 	parser.read('props.ini')
@@ -31,25 +32,23 @@ def isLoggedIn():
 			print()
 			return ' '
 	except:
-		hardError("Cannot connect to Online Judge. Server may be down.")
+		hardError(string_connect_error)
 def logOut(forced=False,clear=False):
 	#ask for permission to logout and exit
 	if(not forced):
 		box = QMessageBox()
 		box.setIcon(QMessageBox.Question)
-		box.setWindowTitle("Sign out and close?")
-		box.setText("Are You sure that You want to log out and exit the app?")
+		box.setWindowTitle(string_logout)
+		box.setText(string_logout_question)
 		if(clear):
-			box.setInformativeText("WARNING: Bajton Helper app data WILL BE PERMANENTLY REMOVED!")
+			box.setInformativeText(string_data_warning)
 		box.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
 		box.setDefaultButton(QMessageBox.No)
 		buttonYes = box.button(QMessageBox.Yes)
-		buttonYes.setText("Logout and exit")
 		buttonNo = box.button(QMessageBox.No)
-		buttonNo.setText("Cancel")
 		box.exec_()
 	else:
-		hardError("You are not logged in. Please restart the app and sign in.")
+		hardError(string_unauthorized)
 	if(box.clickedButton() == buttonYes or forced):
 		print("[...]Logging out")
 		s = requests.Session()
@@ -73,7 +72,7 @@ def hardError(message):
 	box = QMessageBox()
 	box.setIcon(QMessageBox.Critical)
 	box.setWindowTitle("Shit Outta Luck")
-	box.setText("Bajton helper has stopped because of hard error:")
+	box.setText(string_hard_error)
 	box.setInformativeText(message)
 	box.exec_()
 	print("[CRITICAL ERROR]Killing app in 3 seconds")
@@ -86,13 +85,13 @@ class loginForm():
 		self.window.setWindowFlag(QtCore.Qt.WindowMaximizeButtonHint, False)
 		self.window.closeEvent=self.fullExit
 		layout = QVBoxLayout()
-		loginLabel=QLabel('Please log-in using Bajton account. App will store only session id (not password).')
-		loginBtn=QPushButton('Login')
+		loginLabel=QLabel(string_login_desc)
+		loginBtn=QPushButton('Ok')
 		loginBtn.clicked.connect(lambda result:self.tryLogIn(app,login.text(),passwd.text()))
-		cancelBtn=QPushButton('Cancel')
+		cancelBtn=QPushButton(string_exit)
 		cancelBtn.clicked.connect(self.fullExit)
-		login=QLineEdit(placeholderText="Login")
-		passwd=QLineEdit(placeholderText="Password")
+		login=QLineEdit(placeholderText="Nick")
+		passwd=QLineEdit(placeholderText=string_password)
 		passwd.setEchoMode(QLineEdit.Password)
 		layout.addWidget(loginLabel)
 		layout.addWidget(login)
@@ -137,5 +136,5 @@ class loginForm():
 			msg = QMessageBox()
 			msg.setIcon(QMessageBox.Critical)
 			msg.setText(data["data"])
-			msg.setWindowTitle("Error")
+			msg.setWindowTitle(string_login_error)
 			msg.exec_()

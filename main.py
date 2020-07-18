@@ -8,6 +8,8 @@ import notifier
 import settings
 from configparser import ConfigParser
 import sys
+import datetime
+from strings import *
 class Tabs(QWidget):
 	def __init__(self, parent):
 		super(QWidget, self).__init__(parent)
@@ -20,10 +22,10 @@ class Tabs(QWidget):
 		self.tab4 = settings.Settings(self,parent)
 		self.tabs.resize(1000,700)
 		#Adding tabs
-		self.tabs.addTab(self.tab1,"Contests")
-		self.tabs.addTab(self.tab2,"Search")
-		self.tabs.addTab(self.tab3,"Notifications")
-		self.tabs.addTab(self.tab4,"Settings")
+		self.tabs.addTab(self.tab1,string_contests)
+		self.tabs.addTab(self.tab2,string_search)
+		self.tabs.addTab(self.tab3,string_notifications)
+		self.tabs.addTab(self.tab4,string_settings)
 		self.layout.addWidget(self.tabs)
 		self.setLayout(self.layout)
 class App(QMainWindow):
@@ -84,7 +86,6 @@ class App(QMainWindow):
 		#do not close, but hide to tray
 		event.ignore()
 		self.hide()
-
 if __name__ == "__main__":
 	#Starting app, setting icon and style
 	app = QApplication(sys.argv)

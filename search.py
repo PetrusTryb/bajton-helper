@@ -6,17 +6,19 @@ import requests
 import threading
 import sys,os,signal
 from login import getSession,logOut
+from strings import *
 class SearchThread(QThread):
 	results_ready = QtCore.pyqtSignal(object)
 	def __init__(self, q,exclude="",pid=""):
 		QThread.__init__(self)
 		if(pid!=""):
+			#need to find the placement node
 			print("[INFO] Results will load in ref to resolved namespace")
 		self.q=q
 		self.row=0
 		self.cNames=dict()
 		self.results=list()
-		self.states={"None":"Unsolved","8":"Partial","0":"Correct","-1":"Wrong"}
+		self.states={"None":string_unsolved,"8":string_partial,"0":"OK","-1":string_wrong}
 		self.exclude=exclude
 		self.pid=pid
 		print("[...]Starting thread")
@@ -124,17 +126,17 @@ class Search(QWidget):
 	def __init__(self, parent):
 		super(QWidget, self).__init__(parent)
 		self.layout = QVBoxLayout()
-		self.layout.addWidget(QLabel("Here You can search for particular problem by it's name in public problems and all contests that You have access to."))
-		self.waitLabel=QLabel("Searching, please wait...")
+		self.layout.addWidget(QLabel(string_search_desc))
+		self.waitLabel=QLabel(string_searching)
 		self.layout.addWidget(self.waitLabel)
 		self.waitLabel.hide()
-		self.query=QLineEdit(placeholderText="Problem name")
+		self.query=QLineEdit(placeholderText=string_problem_name)
 		#creating table
 		self.layout.addWidget(self.query)
 		self.tableWidget = QTableWidget()
 		self.tableWidget.setRowCount(0)
 		self.tableWidget.setColumnCount(5)
-		self.tableWidget.setHorizontalHeaderLabels(["Id","Name","Contest name","Status","Actions"])
+		self.tableWidget.setHorizontalHeaderLabels(["Id",string_name,string_contest_name,"Status",string_actions])
 		header = self.tableWidget.horizontalHeader()
 		header.setSectionResizeMode(0, QtWidgets.QHeaderView.Stretch)
 		header.setSectionResizeMode(1, QtWidgets.QHeaderView.Stretch)
@@ -173,10 +175,10 @@ class Search(QWidget):
 			cNameItem.setFlags(QtCore.Qt.ItemIsEnabled)
 			statusItem=QTableWidgetItem(i["status"])
 			statusItem.setFlags(QtCore.Qt.ItemIsEnabled)
-			if(i["status"]=="Correct"):
-				solveBtn=QLabel("No actions avaiable")
+			if(i["status"]=="OK"):
+				solveBtn=QLabel(string_no_actions)
 			else:
-				solveBtn=QPushButton('Auto-solve')
+				solveBtn=QPushButton(string_auto_solve)
 				solveBtn.clicked.connect(self.trySolve)
 			self.tableWidget.setItem(self.row-1,0,idItem)
 			self.tableWidget.setItem(self.row-1,1,titleItem)
@@ -202,7 +204,7 @@ class Search(QWidget):
 		id=(self.tableWidget.item(index.row(),0).text()).split("/")[2]
 		lst=requests.get("http://bajton.vlo.gda.pl/api/contest?id="+cid)
 		if(lst.json()["data"]["status"]!="0"):
-			self.error("Sorry, this contest has ended or not yet started.")
+			self.error(string_contest_invalid)
 			return
 		print("[...]Looking up for Your submissions: "+id)
 		self.threads=[]
@@ -211,12 +213,12 @@ class Search(QWidget):
 		st.results_ready.connect(self.finishAutoSolve)
 		self.threads.append(st)
 		st.start()
-		self.showProgress("We are looking up for Your previous answers, please wait...")
+		self.showProgress(string_solving)
 	def finishAutoSolve(self,data):
 		self.prog.close()
 		if(len(data)==0):
 			print("[ERROR]Failed to find correct answer.")
-			self.error("Failed to find correct answer. Ensure You have provided passwords for all constests that You took part in.")
+			self.error(string_solve_failed)
 			return False
 		else:
 			print("[...]Copying answer")
@@ -254,8 +256,8 @@ class Search(QWidget):
 		msg = QMessageBox()
 		msg.setIcon(QMessageBox.Critical)
 		msg.setText(text)
-		msg.setInformativeText("This isn't a cheat. It only copies Your previous answers from Your account.")
-		msg.setWindowTitle("Auto-solve failed")
+		msg.setInformativeText(string_note)
+		msg.setWindowTitle(string_solve_error)
 		msg.exec_()
 	def showProgress(self,text):
 		self.prog = QProgressDialog()
@@ -263,7 +265,7 @@ class Search(QWidget):
 		self.prog.setValue(-1)
 		self.prog.setMinimum(0)
 		self.prog.setMaximum(0)
-		self.prog.setWindowTitle("Please wait")
+		self.prog.setWindowTitle(string_searching)
 		self.prog.setCancelButton(None)
 		self.prog.setWindowFlag(QtCore.Qt.WindowCloseButtonHint, False)
 		self.prog.setWindowFlag(QtCore.Qt.WindowContextHelpButtonHint, False)
