@@ -1,3 +1,4 @@
+##### Aplikacja także w języku polskim. Dokumentacja [tutaj](https://github.com/PetrusTryb/bajton-helper/blob/master/readme_pl.md)
 # Bajton Helper
 Get notifications about new problems, auto-solve based on history and search functionality!
 ## Features
