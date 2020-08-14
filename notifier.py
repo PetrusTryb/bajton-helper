@@ -79,7 +79,7 @@ class BackgroundService(threading.Thread):
 		c=dict()
 		sessionId=getSession()
 		c["sessionid"]=sessionId
-		check=requests.get("http://bajton.vlo.gda.pl/api/problem?limit=99",cookies=c)
+		check=requests.get(string_api+"problem?limit=99",cookies=c)
 		data=check.json()["data"]["results"]
 		print(len(data))
 		autoFilled=0
@@ -100,7 +100,7 @@ class BackgroundService(threading.Thread):
 	def checkContestsDeadlines(self):
 		print("[...]Checking contests deadlines")
 		#list all contests
-		lst=requests.get("http://bajton.vlo.gda.pl/api/contests?limit=99&status=0")
+		lst=requests.get(string_api+"contests?limit=99&status=0")
 		self.allContests=lst.json()["data"]["results"]
 		for i in (self.allContests):
 			deadlineTime=datetime.datetime.fromisoformat(i["end_time"][:-1])
@@ -113,7 +113,7 @@ class BackgroundService(threading.Thread):
 	def checkContests(self):
 		print("[...]Checking contests updates")
 		#list all contests
-		lst=requests.get("http://bajton.vlo.gda.pl/api/contests?limit=99&status=0")
+		lst=requests.get(string_api+"contests?limit=99&status=0")
 		self.allContests=lst.json()["data"]["results"]
 		self.cNames=dict()
 		for i in (self.allContests):
@@ -124,7 +124,7 @@ class BackgroundService(threading.Thread):
 			c=dict()
 			sessionId=getSession()
 			c["sessionid"]=sessionId
-			check=requests.get("http://bajton.vlo.gda.pl/api/contest/problem?contest_id="+cid,cookies=c)
+			check=requests.get(string_api+"contest/problem?contest_id="+cid,cookies=c)
 			data=check.json()["data"]
 			silent=False
 			try:
@@ -156,7 +156,7 @@ class BackgroundService(threading.Thread):
 		#getting session id
 		sessionId=getSession()
 		c["sessionid"]=sessionId
-		r=requests.get("http://bajton.vlo.gda.pl/api/contest?id="+cid,cookies=c)
+		r=requests.get(string_api+"contest?id="+cid,cookies=c)
 		print(r)
 		x=r.json()["data"]
 		#print(cid,x)
@@ -164,20 +164,20 @@ class BackgroundService(threading.Thread):
 				return True
 		else:
 			#check contest access
-			check=requests.get("http://bajton.vlo.gda.pl/api/contest/access?contest_id="+str(x["id"]),cookies=c)
+			check=requests.get(string_api+"contest/access?contest_id="+str(x["id"]),cookies=c)
 			if("true" in check.text):
 				return True
 			else:
 				try:
 					#try to authenticate to the contest
 					parser["PASSWORDS"][str(x["id"])]
-					csrfget=requests.get("http://bajton.vlo.gda.pl/api/profile")
+					csrfget=requests.get(string_api+"profile")
 					h=dict()
 					#obtain CSRF token
 					h["X-CSRFToken"]=csrfget.cookies.get_dict()["csrftoken"]
 					h["Content-Type"]="application/json;charset=UTF-8"
 					c["csrftoken"]=csrfget.cookies.get_dict()["csrftoken"]
-					test=requests.post("http://bajton.vlo.gda.pl/api/contest/password",headers=h,cookies=c,data='{"contest_id":"'+str(x["id"])+'","password":"'+parser["PASSWORDS"][str(x["id"])]+'"}')
+					test=requests.post(string_api+"contest/password",headers=h,cookies=c,data='{"contest_id":"'+str(x["id"])+'","password":"'+parser["PASSWORDS"][str(x["id"])]+'"}')
 					if('true' in test.text):
 						return True
 					else:
@@ -206,7 +206,7 @@ class BackgroundService(threading.Thread):
 		c=dict()
 		sessionId=getSession()
 		c["sessionid"]=sessionId
-		check=requests.get("http://bajton.vlo.gda.pl/api/submission?id="+id,cookies=c)
+		check=requests.get(string_api+"submission?id="+id,cookies=c)
 		data=check.json()["data"]["code"]
 		return data.replace("\n","\\n").replace("\t","\\t").replace("\"",'\\"')
 	def pushCode(self,code,lang,id,cid):
@@ -214,7 +214,7 @@ class BackgroundService(threading.Thread):
 		s = requests.Session()
 		cookie_obj = requests.cookies.create_cookie(domain='bajton.vlo.gda.pl',name='sessionid',value=sessionId)
 		s.cookies.set_cookie(cookie_obj)
-		csrfget=requests.get("http://bajton.vlo.gda.pl/api/profile")
+		csrfget=requests.get(string_api+"profile")
 		print("[OK]Obtained valid CSRF token:",csrfget.cookies.get_dict()["csrftoken"])
 		h=dict()
 		h["X-CSRFToken"]=csrfget.cookies.get_dict()["csrftoken"]
@@ -222,10 +222,10 @@ class BackgroundService(threading.Thread):
 		#Posting submission form
 		if(cid==-1):
 			#Push to public problems
-			r = s.post(url = "http://bajton.vlo.gda.pl/api/submission", data='{"code": "'+code+'", "language": "'+lang+'", "problem_id": "'+id+'"}',cookies=csrfget.cookies.get_dict(),headers=h)
+			r = s.post(url = string_api+"submission", data='{"code": "'+code+'", "language": "'+lang+'", "problem_id": "'+id+'"}',cookies=csrfget.cookies.get_dict(),headers=h)
 		else:
 			#Push to contest
-			r = s.post(url = "http://bajton.vlo.gda.pl/api/submission", data='{"code": "'+code+'", "language": "'+lang+'", "contest_id": "'+cid+'", "problem_id": "'+id+'"}',cookies=csrfget.cookies.get_dict(),headers=h)
+			r = s.post(url = string_api+"submission", data='{"code": "'+code+'", "language": "'+lang+'", "contest_id": "'+cid+'", "problem_id": "'+id+'"}',cookies=csrfget.cookies.get_dict(),headers=h)
 		data = r.json()
 		print(data)
 class Notifier(QWidget):

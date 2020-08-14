@@ -67,7 +67,7 @@ class Contests(QWidget):
 		self.initTable()
 		self.parent=parent
 	def getList(self):
-		lst=requests.get("http://bajton.vlo.gda.pl/api/contests?limit=100")
+		lst=requests.get(string_api+"contests?limit=100")
 		data=lst.json()
 		for i in data["data"]["results"]:
 			self.tableData.append(i)

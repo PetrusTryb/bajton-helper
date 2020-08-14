@@ -26,7 +26,7 @@ class SearchThread(QThread):
 		if(len(self.q)>0):
 			print("[...]Starting serach engine, query:",self.q)
 			#list all contests
-			lst=requests.get("http://bajton.vlo.gda.pl/api/contests?limit=99")
+			lst=requests.get(string_api+"contests?limit=99")
 			self.allContests=lst.json()["data"]["results"]
 			for i in (self.allContests):
 				self.cNames[str(i["id"])]=i["title"]
@@ -51,7 +51,7 @@ class SearchThread(QThread):
 		#getting session id
 		sessionId=getSession()
 		c["sessionid"]=sessionId
-		r=requests.get("http://bajton.vlo.gda.pl/api/contest?id="+cid,cookies=c)
+		r=requests.get(string_api+"contest?id="+cid,cookies=c)
 		print(r)
 		x=r.json()["data"]
 		#print(cid,x)
@@ -59,20 +59,20 @@ class SearchThread(QThread):
 				return True
 		else:
 			#check contest access
-			check=requests.get("http://bajton.vlo.gda.pl/api/contest/access?contest_id="+str(x["id"]),cookies=c)
+			check=requests.get(string_api+"contest/access?contest_id="+str(x["id"]),cookies=c)
 			if("true" in check.text):
 				return True
 			else:
 				try:
 					#try to authenticate to the contest
 					parser["PASSWORDS"][str(x["id"])]
-					csrfget=requests.get("http://bajton.vlo.gda.pl/api/profile")
+					csrfget=requests.get(string_api+"profile")
 					h=dict()
 					#obtain CSRF token
 					h["X-CSRFToken"]=csrfget.cookies.get_dict()["csrftoken"]
 					h["Content-Type"]="application/json;charset=UTF-8"
 					c["csrftoken"]=csrfget.cookies.get_dict()["csrftoken"]
-					test=requests.post("http://bajton.vlo.gda.pl/api/contest/password",headers=h,cookies=c,data='{"contest_id":"'+str(x["id"])+'","password":"'+parser["PASSWORDS"][str(x["id"])]+'"}')
+					test=requests.post(string_api+"contest/password",headers=h,cookies=c,data='{"contest_id":"'+str(x["id"])+'","password":"'+parser["PASSWORDS"][str(x["id"])]+'"}')
 					if('true' in test.text):
 						return True
 					else:
@@ -85,7 +85,7 @@ class SearchThread(QThread):
 			c=dict()
 			sessionId=getSession()
 			c["sessionid"]=sessionId
-			check=requests.get("http://bajton.vlo.gda.pl/api/contest/problem?contest_id="+cid,cookies=c)
+			check=requests.get(string_api+"contest/problem?contest_id="+cid,cookies=c)
 			data=check.json()["data"]
 			#find matching problem in contest
 			for i in data:
@@ -95,7 +95,7 @@ class SearchThread(QThread):
 		c=dict()
 		sessionId=getSession()
 		c["sessionid"]=sessionId
-		check=requests.get("http://bajton.vlo.gda.pl/api/problem?limit=99",cookies=c)
+		check=requests.get(string_api+"problem?limit=99",cookies=c)
 		data=check.json()["data"]["results"]
 		#find matching problem in public problems
 		for i in data:
@@ -105,7 +105,7 @@ class SearchThread(QThread):
 		c=dict()
 		sessionId=getSession()
 		c["sessionid"]=sessionId
-		check=requests.get("http://bajton.vlo.gda.pl/api/submissions?myself=1&result=0&limit=250",cookies=c)
+		check=requests.get(string_api+"submissions?myself=1&result=0&limit=250",cookies=c)
 		data=check.json()["data"]["results"]
 		#loop through job instances to get the latest success publish
 		for i in data:
@@ -116,7 +116,7 @@ class SearchThread(QThread):
 			c=dict()
 			sessionId=getSession()
 			c["sessionid"]=sessionId
-			check=requests.get("http://bajton.vlo.gda.pl/api/contest_submissions?myself=1&result=0&limit=250&contest_id="+cid,cookies=c)
+			check=requests.get(string_api+"contest_submissions?myself=1&result=0&limit=250&contest_id="+cid,cookies=c)
 			data=check.json()["data"]["results"]
 			#loop through job instances to get the latest success publish
 			for i in data:
@@ -202,7 +202,7 @@ class Search(QWidget):
 		cid=(self.tableWidget.item(index.row(),0).text()).split("/")[0]
 		pn=(self.tableWidget.item(index.row(),0).text()).split("/")[1]
 		id=(self.tableWidget.item(index.row(),0).text()).split("/")[2]
-		lst=requests.get("http://bajton.vlo.gda.pl/api/contest?id="+cid)
+		lst=requests.get(string_api+"contest?id="+cid)
 		if(lst.json()["data"]["status"]!="0"):
 			self.error(string_contest_invalid)
 			return
@@ -229,7 +229,7 @@ class Search(QWidget):
 		c=dict()
 		sessionId=getSession()
 		c["sessionid"]=sessionId
-		check=requests.get("http://bajton.vlo.gda.pl/api/submission?id="+id,cookies=c)
+		check=requests.get(string_api+"submission?id="+id,cookies=c)
 		data=check.json()["data"]["code"]
 		return data.replace("\n","\\n").replace("\t","\\t").replace("\"",'\\"')
 	def pushCode(self,code,lang,id,cid):
@@ -237,7 +237,7 @@ class Search(QWidget):
 		s = requests.Session()
 		cookie_obj = requests.cookies.create_cookie(domain='bajton.vlo.gda.pl',name='sessionid',value=sessionId)
 		s.cookies.set_cookie(cookie_obj)
-		csrfget=requests.get("http://bajton.vlo.gda.pl/api/profile")
+		csrfget=requests.get(string_api+"profile")
 		print("[OK]Obtained valid CSRF token:",csrfget.cookies.get_dict()["csrftoken"])
 		h=dict()
 		h["X-CSRFToken"]=csrfget.cookies.get_dict()["csrftoken"]
@@ -245,10 +245,10 @@ class Search(QWidget):
 		#Posting submission form
 		if(cid==-1):
 			#Push to public problems
-			r = s.post(url = "http://bajton.vlo.gda.pl/api/submission", data='{"code": "'+code+'", "language": "'+lang+'", "problem_id": "'+id+'"}',cookies=csrfget.cookies.get_dict(),headers=h)
+			r = s.post(url = string_api+"submission", data='{"code": "'+code+'", "language": "'+lang+'", "problem_id": "'+id+'"}',cookies=csrfget.cookies.get_dict(),headers=h)
 		else:
 			#Push to contest
-			r = s.post(url = "http://bajton.vlo.gda.pl/api/submission", data='{"code": "'+code+'", "language": "'+lang+'", "contest_id": "'+cid+'", "problem_id": "'+id+'"}',cookies=csrfget.cookies.get_dict(),headers=h)
+			r = s.post(url = string_api+"submission", data='{"code": "'+code+'", "language": "'+lang+'", "contest_id": "'+cid+'", "problem_id": "'+id+'"}',cookies=csrfget.cookies.get_dict(),headers=h)
 		data = r.json()
 		print(data)
 	######################

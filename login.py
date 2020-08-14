@@ -24,7 +24,7 @@ def isLoggedIn():
 		parser["ACCOUNT"]=dict()
 		return ' '
 	try:
-		r=requests.get("http://bajton.vlo.gda.pl/api/profile",cookies=c)
+		r=requests.get(string_api+"profile",cookies=c)
 		if "id" in r.text:
 			print(c)
 			return c["sessionid"]
@@ -56,7 +56,7 @@ def logOut(forced=False,clear=False):
 		cookie_obj = requests.cookies.create_cookie(domain='bajton.vlo.gda.pl',name='sessionid',value=sessionId)
 		s.cookies.set_cookie(cookie_obj)
 		#Closing session
-		r = s.get(url = "http://bajton.vlo.gda.pl/api/logout")
+		r = s.get(url = string_api+"logout")
 		data = r.text
 		print(data)
 		parser = ConfigParser()
@@ -85,15 +85,17 @@ class loginForm():
 		self.window.setWindowFlag(QtCore.Qt.WindowMaximizeButtonHint, False)
 		self.window.closeEvent=self.fullExit
 		layout = QVBoxLayout()
+		api=QLineEdit(string_api+"",placeholderText="API")
 		loginLabel=QLabel(string_login_desc)
 		loginBtn=QPushButton('Ok')
-		loginBtn.clicked.connect(lambda result:self.tryLogIn(app,login.text(),passwd.text()))
+		loginBtn.clicked.connect(lambda result:self.tryLogIn(app,login.text(),passwd.text(),api.text()))
 		cancelBtn=QPushButton(string_exit)
 		cancelBtn.clicked.connect(self.fullExit)
 		login=QLineEdit(placeholderText="Nick")
 		passwd=QLineEdit(placeholderText=string_password)
 		passwd.setEchoMode(QLineEdit.Password)
 		layout.addWidget(loginLabel)
+		layout.addWidget(api)
 		layout.addWidget(login)
 		layout.addWidget(passwd)
 		layout.addWidget(loginBtn)
@@ -107,17 +109,18 @@ class loginForm():
 	def fullExit(self,evnt):
 		print("[INFO]Login cancelled, exiting")
 		sys.exit(0)
-	def tryLogIn(self,app,login,passwd):
+	def tryLogIn(self,app,login,passwd,api):
+		string_api=api
 		print("[...]Logging in as:",login)
 		#Getting valid CSRF token
 		s = requests.Session()
-		csrfget=requests.get("http://bajton.vlo.gda.pl/api/profile")
+		csrfget=requests.get(string_api+"profile")
 		print("[OK]Obtained valid CSRF token:",csrfget.cookies.get_dict()["csrftoken"])
 		h=dict()
 		h["X-CSRFToken"]=csrfget.cookies.get_dict()["csrftoken"]
 		h["Content-Type"]="application/json;charset=UTF-8"
 		#Posting login form
-		r = s.post(url = "http://bajton.vlo.gda.pl/api/login", data='{"username": "'+login+'", "password": "'+passwd+'"}',cookies=csrfget.cookies.get_dict(),headers=h)
+		r = s.post(url = string_api+"login", data='{"username": "'+login+'", "password": "'+passwd+'"}',cookies=csrfget.cookies.get_dict(),headers=h)
 		data = r.json()
 		if "Succeeded" in data["data"]:
 			sessid=s.cookies.get_dict()
@@ -125,7 +128,7 @@ class loginForm():
 			#Writing session id to config file
 			parser = ConfigParser()
 			parser.read('props.ini')
-			parser["ACCOUNT"]={"session":sessid["sessionid"]}
+			parser["ACCOUNT"]={"session":sessid["sessionid"],"api":api}
 			with open('props.ini', 'w') as configfile:
 				parser.write(configfile)
 			self.window.closeEvent=self.closeForm
