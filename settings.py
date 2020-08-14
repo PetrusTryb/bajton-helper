@@ -58,7 +58,7 @@ class Settings(QWidget):
 		runLayout.addWidget(headless)
 		runOpts.setLayout(runLayout)
 		layout.addWidget(runOpts)
-		verInfo=QLabel("<a href='https://github.com/PetrusTryb/bajton-helper' style='color:red'>Bajton helper by Piotr Trybisz</a>")
+		verInfo=QLabel("<a href='https://github.com/PetrusTryb/bajton-helper' style='color:red'>Bajton helper by Piotr Trybisz</a><br/>"+string_version)
 		verInfo.setOpenExternalLinks(True)
 		verInfo.setFont(QFont("Arial",25))
 		layout.addWidget(verInfo)
